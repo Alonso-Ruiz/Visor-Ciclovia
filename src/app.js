@@ -43,12 +43,16 @@
     $('legend-panel').hidden=!open;
     $('legend-tool').setAttribute('aria-expanded',String(open));
   }
+  let panelHideTimer;
   function setPanel(open){
-    $('panel').hidden=!open;
+    clearTimeout(panelHideTimer);
+    if(open)$('panel').hidden=false;
     document.body.classList.toggle('panel-open',open);
     $('open-panel').setAttribute('aria-expanded',String(open));
     $('layers-tool').setAttribute('aria-expanded',String(open));
     if(open){closeDetail();setLegend(false);}
+    else if(innerWidth<=896)panelHideTimer=setTimeout(()=>{$('panel').hidden=true;},420);
+    else $('panel').hidden=true;
   }
   function fit(features){
     if(!features.length)return;
@@ -121,7 +125,7 @@
   $('clear-search').onclick=()=>{$('search').value='';render();$('search-results').hidden=true;$('search').focus();};
   ['routes-visible','existing-visible','proposed-visible'].forEach(id=>$(id).onchange=()=>{syncVisibility();render();});
   $('boundary-visible').onchange=()=>boundary.setVisible($('boundary-visible').checked);
-  const togglePanel=event=>{event.preventDefault();event.stopPropagation();setPanel($('panel').hidden);};
+  const togglePanel=event=>{event.preventDefault();event.stopPropagation();setPanel(!document.body.classList.contains('panel-open'));};
   $('open-panel').addEventListener('click',togglePanel);
   $('layers-tool').addEventListener('click',togglePanel);
   $('close-panel').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();setPanel(false);$('open-panel').focus();});
@@ -140,7 +144,6 @@
     if(feature){try{show(feature);}catch(error){console.error('No se pudo abrir la ficha del elemento',error);$('detail-type').textContent=feature.get('_kind')==='route'?'CICLOVÍA':'CICLOPARQUEADERO';$('detail-title').textContent=name(feature);$('detail-fields').replaceChildren();$('detail').hidden=false;}}
     else closeDetail();
   });
-  $('download').onclick=()=>{if(!selected)return;const copy=selected.clone();copy.unset('_kind');const url=URL.createObjectURL(new Blob([format.writeFeatures([copy],{dataProjection:'EPSG:4326',featureProjection:'EPSG:3857'})],{type:'application/geo+json'}));const a=document.createElement('a');a.href=url;a.download=`${selected.get('_kind')}-${selected.get('id')}.geojson`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   document.addEventListener('keydown',event=>{if(event.key==='Escape')dismissDetail();});
   syncVisibility();render();
   // Fit once the browser has laid out the full map canvas, including when opened from file://.
